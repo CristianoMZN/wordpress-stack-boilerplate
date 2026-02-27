@@ -1,0 +1,55 @@
+services:
+  database:
+    image: mariadb:10.8
+    volumes:
+      - db_data:/var/lib/mysql
+    restart: always
+    environment:
+      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
+      - MYSQL_DATABASE=${MYSQL_DATABASE}
+      - MYSQL_USER=${MYSQL_USER}
+      - MYSQL_PASSWORD=${MYSQL_PASSWORD}
+    networks:
+      - wp-network
+
+  wordpress:
+    build: .
+    depends_on:
+      - database
+    ports:
+      - "8080:80"
+    restart: always
+    volumes:
+      - ./wp-content:/var/www/html/wp-content
+    environment:
+      - WORDPRESS_DB_HOST=database
+      - WORDPRESS_DB_USER=${MYSQL_USER}
+      - WORDPRESS_DB_PASSWORD=${MYSQL_PASSWORD}
+      - WORDPRESS_DB_NAME=${MYSQL_DATABASE}
+      - PHP_IDE_CONFIG=serverName=docker-server
+      - XDEBUG_MODE=debug,develop
+      - XDEBUG_CONFIG=client_host=host.docker.internal client_port=9003 idekey=VSCODE
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    networks:
+      - wp-network
+
+  phpmyadmin:
+    depends_on:
+      - database
+    image: phpmyadmin:latest
+    restart: always
+    ports:
+      - "8081:80"
+    environment:
+      - PMA_HOST=database
+      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
+    networks:
+      - wp-network
+
+volumes:
+  db_data:
+
+networks:
+  wp-network:
+    driver: bridge
